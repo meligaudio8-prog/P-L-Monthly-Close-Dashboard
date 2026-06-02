@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>P&L Monthly Close Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<script>Chart.register(ChartDataLabels);</script>
+<style>
+:root{
+  --bg:#f8f7f5;--surf:#fff;--s2:#f3f2ef;--bd:#e3e1dd;--bd2:#ccc9c4;
+  --ink:#17171a;--ink2:#4e4c4a;--ink3:#98958f;
+  --blue:#1a4fd6;--blue-lt:#eef2fd;
+  --grn:#067a55;--grn-lt:#edfaf4;
+  --red:#bf1c1c;--red-lt:#fdf0f0;
+  --amb:#8a4900;--amb-lt:#fef5e7;
+  --r:13px;--rsm:8px;--rxs:5px;
+  --sh0:0 1px 3px rgba(0,0,0,.05);
+  --sh1:0 4px 16px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.04);
+  --sh2:0 12px 40px rgba(0,0,0,.11),0 3px 10px rgba(0,0,0,.05);
+  --tr:all .2s cubic-bezier(.4,0,.2,1);
+  --serif:'Cormorant Garamond',serif;
+  --sans:'DM Sans',sans-serif;
+  --mono:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5;}
+
+/* LANDING */
+#landing{min-height:100vh;display:flex;flex-direction:column;background:var(--surf);position:relative;overflow:hidden;}
+.lgrid{position:absolute;inset:0;background-image:linear-gradient(var(--bd) .5px,transparent .5px),linear-gradient(90deg,var(--bd) .5px,transparent .5px);background-size:52px 52px;opacity:.28;pointer-events:none;}
+.lglow{position:absolute;top:-20%;right:-10%;width:60%;height:80%;background:radial-gradient(ellipse,rgba(26,79,214,.07) 0%,transparent 65%);pointer-events:none;}
+.ltop{padding:22px 56px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bd);position:relative;z-index:1;}
+.llogo{font-family:var(--serif);font-size:16px;font-weight:700;letter-spacing:-.2px;}
+.lmeta{font-size:11px;font-family:var(--mono);color:var(--ink3);}
+.lbody{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:64px 40px;position:relative;z-index:1;}
+.lbrow{font-size:11px;font-family:var(--mono);font-weight:500;text-transform:uppercase;letter-spacing:.14em;color:var(--blue);margin-bottom:26px;display:flex;align-items:center;gap:12px;}
+.lbrow::before,.lbrow::after{content:'';flex:0 0 44px;height:.5px;background:var(--blue);opacity:.35;}
+.lh1{font-family:var(--serif);font-size:clamp(44px,7.5vw,88px);font-weight:700;color:var(--ink);letter-spacing:-2.5px;line-height:1;margin-bottom:18px;}
+.lh1 em{font-style:italic;color:var(--blue);}
+.lsub{font-size:17px;color:var(--ink3);font-weight:300;margin-bottom:10px;}
+.lby{font-size:13px;font-family:var(--mono);color:var(--ink3);margin-bottom:52px;}
+.lby strong{color:var(--ink2);font-weight:500;}
+.lpills{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;margin-bottom:54px;}
+.lpill{font-size:11px;font-family:var(--mono);padding:5px 12px;border-radius:20px;background:var(--s2);border:1px solid var(--bd);color:var(--ink3);}
+.lcta{display:inline-flex;align-items:center;gap:11px;background:var(--ink);color:#fff;padding:16px 38px;border-radius:var(--rsm);font-size:15px;font-weight:600;cursor:pointer;border:none;letter-spacing:-.2px;transition:var(--tr);box-shadow:0 4px 22px rgba(0,0,0,.2);}
+.lcta:hover{background:var(--blue);transform:translateY(-2px);box-shadow:0 8px 30px rgba(26,79,214,.32);}
+.lcta svg{transition:transform .2s;}.lcta:hover svg{transform:translateX(4px);}
+.lfoot{padding:20px 56px;display:flex;justify-content:space-between;border-top:1px solid var(--bd);font-size:11px;font-family:var(--mono);color:var(--ink3);position:relative;z-index:1;}
+
+/* APP */
+#app{display:none;opacity:0;transition:opacity .4s;}
+#app.vis{opacity:1;}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.97);backdrop-filter:blur(18px);border-bottom:1px solid var(--bd);display:flex;align-items:stretch;height:54px;padding:0 48px;}
+.tbbrand{display:flex;flex-direction:column;justify-content:center;padding-right:22px;border-right:1px solid var(--bd);margin-right:22px;flex-shrink:0;}
+.tbbrand h1{font-family:var(--serif);font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.2px;line-height:1.2;}
+.tbbrand p{font-size:9.5px;color:var(--ink3);font-family:var(--mono);margin-top:1px;}
+.tbnav{display:flex;align-items:stretch;flex:1;}
+.tbtab{display:flex;align-items:center;padding:0 15px;font-size:12.5px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;transition:var(--tr);white-space:nowrap;user-select:none;}
+.tbtab:hover{color:var(--ink2);}
+.tbtab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tbright{display:flex;align-items:center;gap:7px;padding-left:18px;border-left:1px solid var(--bd);flex-shrink:0;}
+.psel{font-size:11px;font-family:var(--mono);font-weight:500;padding:5px 26px 5px 9px;border-radius:var(--rxs);border:1px solid var(--bd2);background:var(--s2);color:var(--ink2);cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 4.5L8 0' fill='%2398958f'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center;}
+.ppill{font-size:10px;font-family:var(--mono);font-weight:500;padding:4px 10px;border-radius:12px;background:var(--blue-lt);color:var(--blue);white-space:nowrap;}
+.pdfbtn{display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--s2);border:1px solid var(--bd2);border-radius:var(--rxs);font-size:11px;font-family:var(--mono);color:var(--ink2);cursor:pointer;transition:var(--tr);}
+.pdfbtn:hover{border-color:var(--blue);color:var(--blue);}
+
+/* LAYOUT */
+.main{max-width:1320px;margin:0 auto;padding:0 48px 80px;}
+.sec{display:none;padding-top:36px;}
+.sec.active{display:block;animation:fadeUp .34s cubic-bezier(.4,0,.2,1) both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.sh{margin-bottom:28px;}
+.sh h2{font-family:var(--serif);font-size:30px;font-weight:700;color:var(--ink);letter-spacing:-.6px;line-height:1.15;}
+.sh p{font-size:13px;color:var(--ink3);margin-top:6px;}
+
+/* GRIDS */
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:18px;}
+.mb18{margin-bottom:18px;}
+
+/* CARD */
+.card{background:var(--surf);border:1px solid var(--bd);border-radius:var(--r);padding:22px;box-shadow:var(--sh0);transition:var(--tr);}
+.card:hover{box-shadow:var(--sh1);transform:translateY(-1px);}
+.ct{font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:3px;}
+.cs{font-size:11.5px;color:var(--ink3);margin-bottom:16px;}
+
+/* KPI */
+.kc{background:var(--surf);border:1px solid var(--bd);border-radius:var(--r);padding:20px 22px;box-shadow:var(--sh0);transition:var(--tr);position:relative;overflow:hidden;}
+.kc::before{content:'';position:absolute;top:0;left:0;right:0;height:2.5px;background:var(--kca,var(--blue));}
+.kc:hover{box-shadow:var(--sh1);transform:translateY(-2px);}
+.kl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink3);margin-bottom:10px;}
+.kv{font-family:var(--serif);font-size:36px;font-weight:700;color:var(--ink);letter-spacing:-1.2px;line-height:1;margin-bottom:10px;}
+.km{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink3);}
+.badge{display:inline-flex;align-items:center;font-size:10.5px;font-weight:700;font-family:var(--mono);padding:3px 8px;border-radius:4px;white-space:nowrap;}
+.bu{background:var(--grn-lt);color:var(--grn);}
+.bdn{background:var(--red-lt);color:var(--red);}
+.bn{background:var(--blue-lt);color:var(--blue);}
+.bw{background:var(--amb-lt);color:var(--amb);}
+
+/* INSIGHTS */
+.ins-box{background:linear-gradient(135deg,#f0f5ff,#eef2fd);border:1px solid #c6d8fa;border-radius:var(--r);padding:22px;}
+.ins-box h3{font-family:var(--serif);font-size:16px;font-weight:600;color:var(--blue);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.ii{display:flex;gap:11px;padding:12px 0;border-bottom:1px solid rgba(26,79,214,.1);}
+.ii:last-child{border-bottom:none;padding-bottom:0;}
+.idot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:8px;}
+.itxt{font-size:12.5px;color:var(--ink2);line-height:1.65;}
+.itxt strong{color:var(--ink);}
+
+/* WARN BOX */
+.warn-box{border-radius:var(--r);padding:14px 18px;margin-bottom:18px;display:none;}
+.warn-box.show{display:block;}
+.warn-box.amber{background:var(--amb-lt);border:1px solid #f0c97a;}
+.warn-box.red{background:var(--red-lt);border:1px solid #f0a0a0;}
+.warn-ttl{font-size:12px;font-weight:600;font-family:var(--mono);margin-bottom:8px;display:flex;align-items:center;gap:7px;}
+.warn-box.amber .warn-ttl{color:var(--amb);}
+.warn-box.red .warn-ttl{color:var(--red);}
+.warn-ul{list-style:none;display:flex;flex-direction:column;gap:4px;}
+.warn-ul li{font-size:11.5px;display:flex;align-items:flex-start;gap:6px;}
+.warn-box.amber .warn-ul li{color:var(--amb);}
+.warn-box.red .warn-ul li{color:var(--red);}
+.warn-ul li::before{content:'▲';font-size:9px;margin-top:2px;flex-shrink:0;}
+
+/* P&L TABLE */
+.chips{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.chip{font-size:12px;font-weight:500;padding:6px 14px;border-radius:20px;border:1px solid var(--bd2);background:var(--surf);color:var(--ink2);cursor:pointer;transition:var(--tr);}
+.chip:hover{border-color:var(--blue);color:var(--blue);}
+.chip.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+/* Scrollable container — sticky header works inside here */
+.pltbl-wrap{overflow:auto;max-height:72vh;-webkit-overflow-scrolling:touch;border-radius:var(--r);}
+.pltbl{width:100%;border-collapse:collapse;min-width:700px;table-layout:auto;}
+.pltbl thead th{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);padding:9px 6px;text-align:right;border-bottom:2px solid var(--bd);background:var(--s2);white-space:nowrap;position:sticky;top:0;z-index:10;}
+.pltbl thead th:first-child{text-align:left;width:130px;}
+.pltbl thead th.num{width:52px;}
+.pltbl thead th.note-th{width:auto;text-align:left;min-width:220px;}
+.pltbl thead th.grp{text-align:center;font-size:9px;letter-spacing:.05em;border-bottom:none;padding-bottom:1px;}
+.pltbl thead tr:first-child th{box-shadow:0 2px 0 var(--bd);}
+.pltbl thead tr:nth-child(2) th{box-shadow:0 1px 0 var(--bd);}
+.pltbl tbody tr{border-bottom:1px solid var(--bd);transition:background .12s;}
+.pltbl tbody tr.xrow{cursor:pointer;}
+.pltbl tbody tr.xrow:hover{background:var(--s2);}
+.pltbl tbody tr.xopen{background:#f0f4ff;}
+.pltbl tbody tr.crow td:first-child{padding-left:38px;}
+.pltbl tbody tr.crow{background:var(--s2);}
+.pltbl td{padding:8px 6px;font-size:11px;text-align:right;color:var(--ink2);font-family:var(--mono);white-space:nowrap;}
+.pltbl td.note-td{text-align:left;font-family:var(--sans);font-size:11px;color:var(--ink);padding-left:8px;white-space:normal;min-width:220px;width:99%;}
+.pltbl td:first-child{text-align:left;font-family:var(--sans);font-weight:500;color:var(--ink);white-space:nowrap;}
+.pltbl td:first-child .inner{display:flex;align-items:center;gap:6px;}
+.pltbl tr.sec-hdr td{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink3);background:var(--s2);padding:7px 14px;}
+.pltbl tr.sub td{font-weight:700;color:var(--ink);background:var(--s2);}
+.pltbl tr.sub td:first-child{font-family:var(--sans);font-weight:700;}
+.pltbl tr.tot td{font-weight:700;color:#fff;background:var(--ink);}
+.pltbl tr.tot td:first-child{font-family:var(--sans);font-weight:700;color:#fff;}
+.xbtn{width:18px;height:18px;border-radius:4px;background:var(--blue-lt);color:var(--blue);font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .18s;}
+.area-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block;}
+.vp{color:var(--grn)!important;font-weight:700!important;}
+.vn{color:var(--red)!important;font-weight:700!important;}
+.cmt-inp{background:transparent;border:none;font-size:11px;color:var(--ink);padding:2px 4px;outline:none;font-family:var(--sans);width:100%;}
+.cmt-inp:focus{color:var(--ink);}
+.cmt-inp::placeholder{color:var(--bd2);}
+/* Hide YTD columns on mobile — shown via toggle */
+.ytd-col{}
+
+/* SCENARIO */
+.sc-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px;}
+.sc{background:var(--surf);border:1.5px solid var(--bd);border-radius:var(--r);padding:26px;box-shadow:var(--sh0);transition:var(--tr);cursor:pointer;}
+.sc:hover{box-shadow:var(--sh2);transform:translateY(-3px);}
+.sc.base{border-color:var(--blue);}.sc.down{border-color:#c99a3a;}.sc.up{border-color:var(--grn);}
+.sc.base.active-sc{background:var(--blue-lt);}.sc.down.active-sc{background:var(--amb-lt);}.sc.up.active-sc{background:var(--grn-lt);}
+.stag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:4px 10px;border-radius:20px;margin-bottom:14px;}
+.stag.base{background:var(--blue-lt);color:var(--blue);}
+.stag.down{background:var(--amb-lt);color:var(--amb);}
+.stag.up{background:var(--grn-lt);color:var(--grn);}
+.stitle{font-family:var(--serif);font-size:22px;font-weight:700;color:var(--ink);margin-bottom:18px;line-height:1.2;}
+.srow{display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--bd);}
+.srow:last-child{border-bottom:none;}
+.slbl{font-size:12px;color:var(--ink3);}
+.sval{font-family:var(--mono);font-size:16px;font-weight:500;}
+.sval.blue{color:var(--blue);}.sval.green{color:var(--grn);}.sval.amber{color:var(--amb);}
+
+/* WATERFALL */
+.wf-mode-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.wfbtn{font-size:12px;font-weight:500;padding:6px 14px;border-radius:20px;border:1px solid var(--bd2);background:var(--surf);color:var(--ink2);cursor:pointer;transition:var(--tr);}
+.wfbtn:hover{border-color:var(--blue);color:var(--blue);}
+.wfbtn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.wf-legend{display:flex;gap:14px;margin-bottom:12px;font-size:11px;font-family:var(--mono);color:var(--ink3);flex-wrap:wrap;}
+.wf-legend span{display:flex;align-items:center;gap:5px;}
+.wf-legend i{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0;}
+
+/* AI Assistant */
+.ai-section-bar{display:flex;justify-content:flex-end;margin-top:22px;margin-bottom:2px;}
+.ai-ask-btn{display:inline-flex;align-items:center;gap:6px;background:var(--blue-lt);color:var(--blue);border:1px solid #b8ccf8;border-radius:var(--rxs);padding:6px 14px;font-size:11.5px;font-weight:600;font-family:var(--mono);cursor:pointer;transition:var(--tr);letter-spacing:.02em;}
+.ai-ask-btn:hover{background:#d6e4fc;border-color:var(--blue);}
+.ai-ask-btn svg{width:13px;height:13px;flex-shrink:0;}
+.ai-panel{display:none;margin-top:12px;border:1px solid #c6d8fa;border-radius:var(--r);overflow:hidden;background:#f7f9ff;}
+.ai-panel.open{display:block;animation:fadeUp .22s cubic-bezier(.4,0,.2,1) both;}
+.ai-panel-head{background:var(--blue);color:#fff;padding:10px 18px;font-size:11.5px;font-weight:600;font-family:var(--mono);letter-spacing:.04em;display:flex;align-items:center;justify-content:space-between;}
+.ai-panel-head span{display:flex;align-items:center;gap:8px;}
+.ai-dot{width:6px;height:6px;background:#4ade80;border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.ai-close{background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:18px;padding:0;line-height:1;transition:color .15s;}
+.ai-close:hover{color:#fff;}
+.ai-msgs{height:210px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:9px;scroll-behavior:smooth;}
+.ai-msg{max-width:88%;padding:10px 14px;border-radius:10px;font-size:12.5px;line-height:1.62;font-family:var(--sans);}
+.ai-msg.ai{background:#fff;border:1px solid var(--bd);color:var(--ink2);align-self:flex-start;border-bottom-left-radius:3px;}
+.ai-msg.user{background:var(--blue);color:#fff;align-self:flex-end;border-bottom-right-radius:3px;}
+.ai-typing{display:inline-flex;gap:4px;align-items:center;}
+.ai-typing span{width:5px;height:5px;background:var(--ink3);border-radius:50%;animation:bounce .9s infinite;}
+.ai-typing span:nth-child(2){animation-delay:.15s;}
+.ai-typing span:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.ai-sugs{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 12px;}
+.ai-sug{background:#fff;color:var(--blue);border:1px solid #c6d8fa;border-radius:20px;padding:4px 11px;font-size:11px;font-weight:500;font-family:var(--mono);cursor:pointer;transition:var(--tr);}
+.ai-sug:hover{background:var(--blue-lt);border-color:var(--blue);}
+.ai-input-row{display:flex;gap:8px;padding:11px 14px;border-top:1px solid var(--bd);background:#fff;}
+.ai-input-row input{flex:1;border:1px solid var(--bd2);border-radius:var(--rxs);padding:8px 12px;font-family:var(--sans);font-size:12.5px;color:var(--ink);outline:none;background:var(--bg);transition:border .15s;}
+.ai-input-row input:focus{border-color:var(--blue);}
+.ai-input-row button{background:var(--blue);color:#fff;border:none;border-radius:var(--rxs);padding:8px 16px;cursor:pointer;font-size:12px;font-family:var(--mono);font-weight:500;transition:var(--tr);}
+.ai-input-row button:hover{background:#1540b0;}
+.ai-input-row button:disabled{opacity:.45;cursor:not-allowed;}
+
+/* FOOTER */
+.foot{border-top:1px solid var(--bd);padding:26px 48px;display:flex;align-items:center;justify-content:space-between;background:var(--surf);}
+.fq{font-family:var(--serif);font-size:15px;font-style:italic;color:var(--ink3);max-width:480px;}
+.fq em{color:var(--blue);font-style:normal;font-weight:700;}
+.fm{font-size:10.5px;font-family:var(--mono);color:var(--ink3);text-align:right;line-height:1.75;}
+
+@media(max-width:1080px){
+  .main,.topbar,.foot{padding-left:24px;padding-right:24px;}
+  .g4,.g21{grid-template-columns:1fr 1fr!important;}
+  .g3,.sc-wrap{grid-template-columns:1fr 1fr!important;}
+}
+
+@media(max-width:700px){
+  /* Layout */
+  .main{padding:0 12px 72px;}
+  .foot{padding:18px 16px;flex-direction:column;gap:6px;text-align:center;}
+  .fq{font-size:13px;}
+  .fm{text-align:center;}
+
+  /* Landing */
+  .ltop{padding:14px 18px;}
+  .lfoot{padding:14px 18px;flex-direction:column;gap:4px;text-align:center;}
+  .lh1{font-size:clamp(36px,11vw,60px);letter-spacing:-1.5px;}
+  .lsub{font-size:15px;}
+  .lbrow{font-size:10px;}
+  .lbrow::before,.lbrow::after{flex:0 0 24px;}
+  .lcta{padding:14px 28px;font-size:14px;}
+  .lpills{gap:5px;}
+  .lpill{font-size:10px;padding:4px 9px;}
+
+  /* Topbar — two-row sticky layout */
+  .topbar{padding:0;height:auto;flex-direction:column;align-items:stretch;}
+  .tbbrand{display:none;}
+  .tbnav{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;width:100%;display:flex;padding:0 12px;border-bottom:1px solid var(--bd);}
+  .tbnav::-webkit-scrollbar{display:none;}
+  .tbtab{font-size:12px;padding:12px 11px;flex-shrink:0;border-bottom-width:2.5px;}
+  .tbright{border-left:none;border-top:1px solid var(--bd);padding:8px 12px;width:100%;flex-wrap:wrap;gap:6px;justify-content:space-between;}
+  .ppill{display:none;}
+  .pdfbtn span{display:none;}
+
+  /* Grids */
+  .g4,.g3,.g2,.g21,.sc-wrap{grid-template-columns:1fr!important;}
+
+  /* KPI cards — 2 columns on mobile */
+  .g4{grid-template-columns:1fr 1fr!important;}
+  .kv{font-size:24px;}
+  .kl{font-size:9px;}
+  .km{font-size:10.5px;}
+
+  /* Section headings */
+  .sh h2{font-size:22px;}
+  .sh{margin-bottom:18px;}
+  .sec{padding-top:22px;}
+
+  /* Insights box */
+  .ins-box h3{font-size:14px;}
+  .itxt{font-size:12px;}
+
+  /* Chips */
+  .chip{font-size:11px;padding:5px 11px;}
+
+  /* P&L table — compact on mobile */
+  .pltbl-wrap{max-height:60vh;}
+  .pltbl{min-width:620px;}
+  .pltbl thead th{font-size:9px;padding:8px 10px;letter-spacing:.04em;}
+  .pltbl td{font-size:11px;padding:8px 10px;}
+  .pltbl tr.sec-hdr td{font-size:9px;padding:5px 10px;}
+
+  /* Scenario cards */
+  .stitle{font-size:18px;}
+  .sval{font-size:14px;}
+  .slbl{font-size:11px;}
+
+  /* Waterfall mode buttons */
+  .wf-mode-row{gap:5px;}
+  .wfbtn{font-size:11px;padding:5px 11px;}
+  .wf-legend{font-size:10px;gap:8px;}
+
+  /* AI panel */
+  .ai-msgs{height:180px;}
+  .ai-msg{font-size:12px;}
+  .ai-sugs{gap:5px;}
+  .ai-sug{font-size:10px;padding:3px 9px;}
+
+  /* Warn box */
+  .warn-ttl{font-size:11px;}
+  .warn-ul li{font-size:11px;}
+
+  /* Cards */
+  .card{padding:16px;}
+}
+@media print{
+  #landing,#landing *{display:none!important;}
+  .topbar{display:none!important;}
+  .sec{display:block!important;page-break-before:always;}
+  .sec:first-child{page-break-before:auto;}
+  .card,.kc,.sc{box-shadow:none!important;break-inside:avoid;}
+  .ai-section-bar,.ai-panel{display:none!important;}
+}
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div id="landing">
+  <div class="lgrid"></div><div class="lglow"></div>
+  <header class="ltop">
+    <div class="llogo">P&L Monthly Close Dashboard</div>
+    <div class="lmeta">Illustrative Data · FY 2025</div>
+  </header>
+  <div class="lbody">
+    <div class="lbrow">Finance · FP&amp;A</div>
+    <h1 class="lh1">Monthly<br><em>Close</em><br>Dashboard</h1>
+    <p class="lsub">P&L Analysis · Waterfall · Scenarios</p>
+    <p class="lby">Illustrative Data &nbsp;|&nbsp; FY 2025 &nbsp;|&nbsp; <strong>Demo</strong></p>
+    <div class="lpills">
+      <span class="lpill">Executive Summary</span>
+      <span class="lpill">P&L Detail</span>
+      <span class="lpill">Waterfall</span>
+      <span class="lpill">Scenarios</span>
+      <span class="lpill">Warnings</span>
+    </div>
+    <button class="lcta" onclick="enterDash()">
+      Enter Dashboard
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3.5 9h11M10 4.5 14.5 9 10 13.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+  <footer class="lfoot">
+    <span>FY 2025 · Illustrative Sample Data</span>
+    <span>P&L Monthly Close Dashboard · FP&A</span>
+  </footer>
+</div>
+
+<!-- APP -->
+<div id="app">
+<header class="topbar">
+  <div class="tbbrand"><h1>P&L Dashboard</h1><p>Monthly Close · FP&A</p></div>
+  <nav class="tbnav">
+    <div class="tbtab active" onclick="goTab('s1',this)">Executive Summary</div>
+    <div class="tbtab" onclick="goTab('s2',this)">P&amp;L Detail</div>
+    <div class="tbtab" onclick="goTab('s3',this)">Waterfall</div>
+    <div class="tbtab" onclick="goTab('s4',this)">Scenarios</div>
+  </nav>
+  <div class="tbright">
+    <select class="psel" id="moSel" onchange="periodChange()">
+      <option value="0">January</option><option value="1">February</option><option value="2">March</option>
+      <option value="3">April</option><option value="4" selected>May</option><option value="5">June</option>
+      <option value="6">July</option><option value="7">August</option><option value="8">September</option>
+      <option value="9">October</option><option value="10">November</option><option value="11">December</option>
+    </select>
+    <span class="ppill" id="ppill">May 2025</span>
+    <button class="pdfbtn" onclick="window.print()">
+      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 2h8l2 2v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3z" stroke="currentColor" stroke-width="1.3"/><path d="M5 8h4M5 10.5h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Export PDF
+    </button>
+  </div>
+</header>
+
+<main class="main">
+
+<!-- S1 EXECUTIVE SUMMARY -->
+<section class="sec active" id="s1">
+  <div class="sh"><h2>Executive Summary</h2><p id="s1p">May 2025 · Current month vs. Budget</p></div>
+  <div class="g4" id="kpi-row"></div>
+  <div class="warn-box" id="warn-box">
+    <div class="warn-ttl" id="warn-ttl">⚠ Alerts detected</div>
+    <ul class="warn-ul" id="warn-ul"></ul>
+  </div>
+  <div class="g21">
+    <div class="card">
+      <div class="ct">Monthly Trend — Actual vs Budget</div>
+      <div class="cs">Revenue and cumulative EBITDA ($K)</div>
+      <div style="position:relative;height:215px"><canvas id="cTrend"></canvas></div>
+    </div>
+    <div class="ins-box">
+      <h3><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="7"/><path d="M8 7v4M8 5.5v.5" stroke-linecap="round"/></svg>Key Insights</h3>
+      <div class="ii"><div class="idot" style="background:var(--blue)"></div><div class="itxt" id="ii1">—</div></div>
+      <div class="ii"><div class="idot" style="background:var(--red)"></div><div class="itxt" id="ii2">—</div></div>
+      <div class="ii"><div class="idot" style="background:var(--grn)"></div><div class="itxt" id="ii3">—</div></div>
+    </div>
+  </div>
+  <div class="g3">
+    <div class="card"><div class="ct">OPEX by Department — Current Month</div><div class="cs">Operating expense distribution ($K)</div><div style="position:relative;height:190px"><canvas id="cOpex"></canvas></div></div>
+    <div class="card"><div class="ct">P&L Waterfall — Summary</div><div class="cs">From Revenue to Net Income ($K)</div><div style="position:relative;height:190px"><canvas id="cWfSmall"></canvas></div></div>
+    <div class="card"><div class="ct">Variance vs Budget by Department</div><div class="cs">OPEX actual vs budget ($K)</div><div style="position:relative;height:190px"><canvas id="cVarArea"></canvas></div></div>
+  </div>
+  <div class="ai-section-bar"><button class="ai-ask-btn" onclick="aiToggle('s1')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Ask AI</button></div>
+  <div class="ai-panel" id="aip-s1">
+    <div class="ai-panel-head"><span><span class="ai-dot"></span>AI Assistant — Executive Summary</span><button class="ai-close" onclick="aiToggle('s1')">×</button></div>
+    <div class="ai-msgs" id="aim-s1"><div class="ai-msg ai">I can help you interpret the executive summary — KPIs, revenue trend, EBITDA, and variances vs budget. What would you like to explore?</div></div>
+    <div class="ai-sugs">
+      <span class="ai-sug" onclick="aiSug('s1',this.textContent)">Why is EBITDA below budget?</span>
+      <span class="ai-sug" onclick="aiSug('s1',this.textContent)">Which department has the largest variance?</span>
+      <span class="ai-sug" onclick="aiSug('s1',this.textContent)">How is gross margin tracking?</span>
+    </div>
+    <div class="ai-input-row"><input type="text" id="aii-s1" placeholder="Ask about the executive summary..." onkeydown="if(event.key==='Enter')aiSend('s1')"><button onclick="aiSend('s1')">Send</button></div>
+  </div>
+</section>
+
+<!-- S2 P&L DETAIL -->
+<section class="sec" id="s2">
+  <div class="sh"><h2>P&amp;L Detail</h2><p id="s2p">May 2025 · Click department rows to expand cost lines</p></div>
+  <div class="chips" id="plchips">
+    <div class="chip active" onclick="plChip('mes',this)">Current Month</div>
+    <div class="chip" onclick="plChip('ytd',this)">YTD Cumulative</div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="pltbl-wrap">
+    <table class="pltbl">
+      <thead>
+        <tr>
+          <th rowspan="2" style="text-align:left;vertical-align:bottom;">P&L Line</th>
+          <th class="grp" colspan="4">Selected Period</th>
+          <th class="grp" colspan="4">YTD Cumulative</th>
+          <th class="note-th" rowspan="2" style="vertical-align:bottom;">Note</th>
+        </tr>
+        <tr>
+          <th class="num">Actual</th><th class="num">Budget</th><th class="num">Var $</th><th class="num">Var %</th>
+          <th class="num">Actual</th><th class="num">Budget</th><th class="num">Var $</th><th class="num">Var %</th>
+        </tr>
+      </thead>
+      <tbody id="plBody"></tbody>
+    </table>
+    </div>
+  </div>
+  <div class="ai-section-bar"><button class="ai-ask-btn" onclick="aiToggle('s2')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Ask AI</button></div>
+  <div class="ai-panel" id="aip-s2">
+    <div class="ai-panel-head"><span><span class="ai-dot"></span>AI Assistant — P&L Detail</span><button class="ai-close" onclick="aiToggle('s2')">×</button></div>
+    <div class="ai-msgs" id="aim-s2"><div class="ai-msg ai">I can help you analyse the P&L table — actuals vs budget, line-item variances, and department-level breakdowns. What would you like to explore?</div></div>
+    <div class="ai-sugs">
+      <span class="ai-sug" onclick="aiSug('s2',this.textContent)">What's the biggest OPEX overrun?</span>
+      <span class="ai-sug" onclick="aiSug('s2',this.textContent)">How is gross margin trending?</span>
+      <span class="ai-sug" onclick="aiSug('s2',this.textContent)">Which department is most over budget?</span>
+    </div>
+    <div class="ai-input-row"><input type="text" id="aii-s2" placeholder="Ask about the P&L..." onkeydown="if(event.key==='Enter')aiSend('s2')"><button onclick="aiSend('s2')">Send</button></div>
+  </div>
+</section>
+
+<!-- S3 WATERFALL -->
+<section class="sec" id="s3">
+  <div class="sh"><h2>P&amp;L Waterfall</h2><p>From Revenue to Net Income with OPEX broken down by department</p></div>
+  <div class="wf-mode-row">
+    <button class="wfbtn active" id="wm-mes" onclick="setWMode('mes')">Current Month</button>
+    <button class="wfbtn" id="wm-ytd" onclick="setWMode('ytd')">YTD Cumulative</button>
+    <button class="wfbtn" id="wm-var" onclick="setWMode('var')">Variance vs Budget</button>
+  </div>
+  <div class="wf-legend" id="wf-legend"></div>
+  <div class="card">
+    <div style="position:relative;height:360px"><canvas id="cWF"></canvas></div>
+  </div>
+  <div class="g3" style="margin-top:14px;" id="wf-kpis"></div>
+  <div class="ai-section-bar"><button class="ai-ask-btn" onclick="aiToggle('s3')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Ask AI</button></div>
+  <div class="ai-panel" id="aip-s3">
+    <div class="ai-panel-head"><span><span class="ai-dot"></span>AI Assistant — Waterfall</span><button class="ai-close" onclick="aiToggle('s3')">×</button></div>
+    <div class="ai-msgs" id="aim-s3"><div class="ai-msg ai">I can help you read the waterfall — which lines build or erode the result, how it compares to budget, and what departments explain the variance. What would you like to analyse?</div></div>
+    <div class="ai-sugs">
+      <span class="ai-sug" onclick="aiSug('s3',this.textContent)">What's eroding EBITDA?</span>
+      <span class="ai-sug" onclick="aiSug('s3',this.textContent)">Which departments consume the most OPEX?</span>
+      <span class="ai-sug" onclick="aiSug('s3',this.textContent)">How do I get from gross profit to net income?</span>
+    </div>
+    <div class="ai-input-row"><input type="text" id="aii-s3" placeholder="Ask about the waterfall..." onkeydown="if(event.key==='Enter')aiSend('s3')"><button onclick="aiSend('s3')">Send</button></div>
+  </div>
+</section>
+
+<!-- S4 SCENARIOS -->
+<section class="sec" id="s4">
+  <div class="sh"><h2>Scenario Planning</h2><p>Full-year projections under three macro environments · Click a scenario to update the waterfall</p></div>
+  <div class="sc-wrap">
+    <div class="sc down" onclick="selectScen('pes',this)"><span class="stag down">Downside</span><div class="stitle">Macro Stress</div>
+      <div class="srow"><span class="slbl">Revenue</span><span class="sval amber" id="sc-pes-rev">—</span></div>
+      <div class="srow"><span class="slbl">EBITDA Margin</span><span class="sval amber" id="sc-pes-eb">—</span></div>
+      <div class="srow"><span class="slbl">EBITDA $</span><span class="sval amber" id="sc-pes-ebd">—</span></div>
+      <div class="srow"><span class="slbl">Net Income</span><span class="sval amber" id="sc-pes-rn">—</span></div>
+      <div class="srow"><span class="slbl">vs Base</span><span class="sval amber">−7% revenue</span></div>
+    </div>
+    <div class="sc base active-sc" onclick="selectScen('base',this)"><span class="stag base">Base Case</span><div class="stitle">Steady State</div>
+      <div class="srow"><span class="slbl">Revenue</span><span class="sval blue" id="sc-base-rev">—</span></div>
+      <div class="srow"><span class="slbl">EBITDA Margin</span><span class="sval blue" id="sc-base-eb">—</span></div>
+      <div class="srow"><span class="slbl">EBITDA $</span><span class="sval blue" id="sc-base-ebd">—</span></div>
+      <div class="srow"><span class="slbl">Net Income</span><span class="sval blue" id="sc-base-rn">—</span></div>
+      <div class="srow"><span class="slbl">vs Budget</span><span class="sval blue" id="sc-base-vsbud">—</span></div>
+    </div>
+    <div class="sc up" onclick="selectScen('opt',this)"><span class="stag up">Upside</span><div class="stitle">Growth Acceleration</div>
+      <div class="srow"><span class="slbl">Revenue</span><span class="sval green" id="sc-opt-rev">—</span></div>
+      <div class="srow"><span class="slbl">EBITDA Margin</span><span class="sval green" id="sc-opt-eb">—</span></div>
+      <div class="srow"><span class="slbl">EBITDA $</span><span class="sval green" id="sc-opt-ebd">—</span></div>
+      <div class="srow"><span class="slbl">Net Income</span><span class="sval green" id="sc-opt-rn">—</span></div>
+      <div class="srow"><span class="slbl">vs Base</span><span class="sval green">+6% revenue</span></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ct">Revenue by Scenario ($K)</div><div class="cs">Full-year projection vs Budget</div><div style="position:relative;height:210px"><canvas id="cScRev"></canvas></div></div>
+    <div class="card"><div class="ct">EBITDA Margin by Scenario (%)</div><div class="cs">Full-year projection vs Budget</div><div style="position:relative;height:210px"><canvas id="cScEb"></canvas></div></div>
+  </div>
+  <div class="ai-section-bar"><button class="ai-ask-btn" onclick="aiToggle('s4')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Ask AI</button></div>
+  <div class="ai-panel" id="aip-s4">
+    <div class="ai-panel-head"><span><span class="ai-dot"></span>AI Assistant — Scenarios</span><button class="ai-close" onclick="aiToggle('s4')">×</button></div>
+    <div class="ai-msgs" id="aim-s4"><div class="ai-msg ai">I can help you interpret the three scenarios and their financial implications. What would you like to explore?</div></div>
+    <div class="ai-sugs">
+      <span class="ai-sug" onclick="aiSug('s4',this.textContent)">How much does EBITDA change across scenarios?</span>
+      <span class="ai-sug" onclick="aiSug('s4',this.textContent)">What's the downside impact on net income?</span>
+      <span class="ai-sug" onclick="aiSug('s4',this.textContent)">What assumptions drive the scenario differences?</span>
+    </div>
+    <div class="ai-input-row"><input type="text" id="aii-s4" placeholder="Ask about the scenarios..." onkeydown="if(event.key==='Enter')aiSend('s4')"><button onclick="aiSend('s4')">Send</button></div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="fq">A good monthly close isn't just closing numbers — it's <em>understanding</em> what drives them.</div>
+  <div class="fm">P&L Monthly Close Dashboard<br>FY 2025 · Illustrative Data</div>
+</footer>
+</div><!-- /app -->
+
+<script>
+/* ═══ BASE DATA ════════════════════════════════════════════ */
+const BD={
+  ventas:   [8200,8600,9100,8800,9300,9700,9100,9400,9800,10100,10400,10800],
+  otros_ing:[120,130,140,125,135,150,130,145,155,160,170,180],
+  cmv:      [3100,3250,3450,3320,3510,3660,3440,3540,3700,3820,3940,4100],
+  da:       [350,350,350,350,350,350,350,350,350,350,350,350],
+  rf:       [-80,-75,-70,-72,-68,-65,-70,-67,-62,-60,-58,-55],
+  imp:      [220,240,265,250,275,295,265,280,300,315,335,355],
+};
+const BM={ventas:1.04,otros_ing:1.05,cmv:0.97,da:1.0,rf:1.0,imp:1.03};
+
+const AREAS=[
+  {id:'mkt',  label:'Marketing',       color:'#7F77DD',
+   subs:['Digital advertising','Events & trade shows','Creative agencies','Sponsorships','Materials'],
+   vals:[380,395,410,400,420,440,415,430,450,465,480,500], bm:0.96, subPct:[.35,.18,.22,.12,.13]},
+  {id:'fin',  label:'Finance',          color:'#1a4fd6',
+   subs:['External audit','Accounting software','Insurance','Taxes & fees','Consulting'],
+   vals:[210,215,220,215,225,230,220,225,235,240,248,258], bm:0.99, subPct:[.28,.18,.20,.22,.12]},
+  {id:'ops',  label:'Operations',       color:'#067a55',
+   subs:['Logistics & freight','Maintenance','Supplies','Rent','External services'],
+   vals:[520,540,560,545,570,590,560,575,600,615,635,660], bm:0.98, subPct:[.30,.22,.18,.20,.10]},
+  {id:'hr',   label:'HR',               color:'#D85A30',
+   subs:['Recruiting','Training & development','Benefits','Occupational health','Culture & engagement'],
+   vals:[290,295,300,295,305,310,300,305,315,320,330,340], bm:0.97, subPct:[.20,.18,.32,.15,.15]},
+  {id:'it',   label:'IT',               color:'#BA7517',
+   subs:['SaaS licenses','Cloud infrastructure','Tech support','Cybersecurity','Development'],
+   vals:[340,350,360,350,365,375,360,368,380,390,400,415], bm:1.01, subPct:[.28,.22,.15,.18,.17]},
+  {id:'legal',label:'Legal',            color:'#888780',
+   subs:['Legal fees','Patents & trademarks','Compliance','Contracts','Litigation'],
+   vals:[110,115,118,112,118,122,115,118,122,125,130,135], bm:0.99, subPct:[.40,.18,.20,.12,.10]},
+  {id:'gm',   label:'General Mgmt.',    color:'#534AB7',
+   subs:['Travel & representation','General services','Communications','Donations','Contingencies'],
+   vals:[180,185,190,185,192,196,188,192,198,202,208,215], bm:0.98, subPct:[.30,.25,.18,.12,.15]},
+];
+
+const SM={
+  opt: {ventas:1.06,otros_ing:1.08,cmv:0.95,da:1.0,rf:1.05,imp:1.04,area:0.94},
+  base:{ventas:1.0, otros_ing:1.0, cmv:1.0, da:1.0,rf:1.0, imp:1.0, area:1.0},
+  pes: {ventas:0.93,otros_ing:0.90,cmv:1.06,da:1.0,rf:0.90,imp:0.98,area:1.06},
+};
+
+const WARN_CFG={
+  mb_margin:    {label:'Gross Margin',       warn:38,err:32},
+  ebitda_margin:{label:'EBITDA Margin',      warn:15,err:10},
+  rn_margin:    {label:'Net Margin',         warn:5, err:1},
+  cmv_pct:      {label:'COGS / Revenue',     warn:42,err:48,inv:true},
+  opex_pct:     {label:'Total OPEX / Revenue',warn:28,err:34,inv:true},
+};
+
+const TOT={
+  opex:  v=>AREAS.reduce((s,a)=>s+(v['a_'+a.id]||0),0),
+  mb:    v=>v.ventas+v.otros_ing-v.cmv,
+  ebitda:v=>v.ventas+v.otros_ing-v.cmv-AREAS.reduce((s,a)=>s+(v['a_'+a.id]||0),0),
+  rn:    v=>v.ventas+v.otros_ing-v.cmv-AREAS.reduce((s,a)=>s+(v['a_'+a.id]||0),0)-v.da+v.rf-v.imp,
+};
+
+/* ═══ HELPERS ══════════════════════════════════════════════ */
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+let curM=4, wfMode='mes', curScen='base';
+const NOTES={
+  mes:{
+    ventas:      'New enterprise contracts signed in Q2 drove volume above plan.',
+    otros_ing:   'One-time sublease income from unused office space.',
+    cmv:         'Raw material price increases partially offset by supplier renegotiation.',
+    mb:          'Gross margin held above 50% despite input cost pressure.',
+    area_mkt:    'Digital campaign front-loaded; Q3 spend expected to normalize.',
+    area_fin:    'Year-end audit fees billed earlier than budgeted.',
+    area_ops:    'Freight surcharges drove overage; mitigation plan in progress.',
+    area_hr:     'Two open roles still unfilled; headcount savings offset training costs.',
+    area_it:     'Annual SaaS renewals fell in May; expected to revert next month.',
+    area_legal:  'New regulatory compliance review initiated; counsel engaged.',
+    area_gm:     'Executive offsite and board travel concentrated in this period.',
+    sub_mkt_0:   'Paid social and search spend peaked with product launch.',
+    sub_mkt_1:   'Industry conference attendance higher than planned.',
+    sub_mkt_2:   'Agency retainer increased for rebranding project.',
+    sub_mkt_3:   'Sponsorship deal closed ahead of schedule.',
+    sub_mkt_4:   'Print and point-of-sale materials for new product line.',
+    sub_fin_0:   'External auditors billed Q2 work upfront per new engagement terms.',
+    sub_fin_1:   'New ERP module licence activated in April.',
+    sub_fin_2:   'D&O policy renewal at slightly higher premium.',
+    sub_fin_3:   'Municipal tax assessment resolved; final payment made.',
+    sub_fin_4:   'Tax advisory engaged for cross-border restructuring review.',
+    sub_ops_0:   'Fuel surcharges and carrier rate increases not budgeted.',
+    sub_ops_1:   'HVAC preventive maintenance brought forward from Q4.',
+    sub_ops_2:   'Packaging and consumables usage in line with production volume.',
+    sub_ops_3:   'New warehouse lease commenced June 1; first full month billed.',
+    sub_ops_4:   'Outsourced assembly during peak demand period.',
+    sub_hr_0:    'Two senior roles open; search firm retainer active.',
+    sub_hr_1:    'Leadership development program launched for mid-level managers.',
+    sub_hr_2:    'Health plan renewal effective May; premium up 4%.',
+    sub_hr_3:    'Annual occupational health checkups completed for all staff.',
+    sub_hr_4:    'Engagement survey and follow-up workshops conducted.',
+    sub_it_0:    'Microsoft and Salesforce annual renewals processed in May.',
+    sub_it_1:    'Cloud usage spike driven by data migration project.',
+    sub_it_2:    'Help desk coverage expanded for new regional office.',
+    sub_it_3:    'Penetration test and remediation ahead of ISO audit.',
+    sub_it_4:    'Internal dev sprint for customer portal enhancements.',
+    sub_legal_0: 'External counsel fees for distribution agreement negotiation.',
+    sub_legal_1: 'Trademark filing in three new markets.',
+    sub_legal_2: 'GDPR and local privacy law compliance review completed.',
+    sub_legal_3: 'Vendor and client MSA templates updated.',
+    sub_legal_4: 'Ongoing dispute with former contractor; provisions maintained.',
+    sub_gm_0:    'CEO and CFO international travel for investor roadshow.',
+    sub_gm_1:    'Cleaning, security and reception services in line with plan.',
+    sub_gm_2:    'Mobile fleet and internet services; minor overage vs plan.',
+    sub_gm_3:    'Annual charitable contribution paid in Q2 as per policy.',
+    sub_gm_4:    'Minor unplanned expenses; within tolerance.',
+    opex:        'Total OPEX +3.2% vs budget; IT and Ops drove the overage.',
+    ebitda:      'EBITDA margin at 18.2%; 130bps below plan due to OPEX timing.',
+    da:          'Depreciation in line with fixed asset schedule; no surprises.',
+    rf:          'Higher floating rate on revolving credit facility vs budget assumption.',
+    imp:         'Effective tax rate slightly lower due to R&D credit applied in period.',
+    rn:          'Net income below plan; EBITDA gap partially offset by lower tax rate.',
+  },
+  ytd:{
+    ventas:      'YTD revenue tracking +2.1% vs budget; strong Q1, softer April.',
+    otros_ing:   'YTD other income includes two one-time items totalling $580K.',
+    cmv:         'YTD COGS running 1.8% above budget; input costs elevated since Feb.',
+    mb:          'YTD gross margin at 51.3%; holding within acceptable range of plan.',
+    area_mkt:    'YTD marketing +5% vs budget; H1 campaigns heavier than planned mix.',
+    area_fin:    'YTD finance costs in line; audit and advisory slightly front-loaded.',
+    area_ops:    'YTD logistics overage accumulating; freight costs up 8% vs plan.',
+    area_hr:     'YTD HR underspend due to three unfilled headcount positions.',
+    area_it:     'YTD IT slightly over budget; cloud scaling costs ahead of schedule.',
+    area_legal:  'YTD legal on budget; compliance project costs offset by lower litigation.',
+    area_gm:     'YTD general mgmt in line; travel normalising after Q1 roadshow.',
+    sub_mkt_0:   'YTD digital spend front-loaded in Q1; decelerating into H2.',
+    sub_mkt_1:   'YTD events spend at 60% of annual budget by end of May.',
+    sub_mkt_2:   'YTD agency costs include rebranding scope increase agreed in March.',
+    sub_mkt_3:   'YTD sponsorships fully committed; no further spend expected.',
+    sub_mkt_4:   'YTD materials aligned to product launch schedule; on track.',
+    sub_fin_0:   'YTD audit fees fully invoiced; balance of year expected to be minimal.',
+    sub_fin_1:   'YTD software costs include one-off implementation fees in Q1.',
+    sub_fin_2:   'YTD insurance in line with renewed policy terms.',
+    sub_fin_3:   'YTD tax payments in line with quarterly instalment schedule.',
+    sub_fin_4:   'YTD consulting higher than plan due to restructuring advisory.',
+    sub_ops_0:   'YTD freight overage of $180K; carrier rate locks being renegotiated.',
+    sub_ops_1:   'YTD maintenance spend pulled forward; H2 expected to be lower.',
+    sub_ops_2:   'YTD consumables tracking in line with production volumes.',
+    sub_ops_3:   'YTD rent reflects new warehouse from June; partial year impact.',
+    sub_ops_4:   'YTD outsourcing higher than plan; normalising as headcount grows.',
+    sub_hr_0:    'YTD recruiting underspent; two roles remain open since Q1.',
+    sub_hr_1:    'YTD training on budget; annual program running as scheduled.',
+    sub_hr_2:    'YTD benefits cost increase due to May premium renewal.',
+    sub_hr_3:    'YTD occupational health completed; no further spend until Q4.',
+    sub_hr_4:    'YTD culture spend includes engagement survey and action workshops.',
+    sub_it_0:    'YTD SaaS licences on budget; renewals concentrated in Q1 and May.',
+    sub_it_1:    'YTD cloud costs 7% above budget; migration project driving overage.',
+    sub_it_2:    'YTD tech support in line with expanded headcount and new office.',
+    sub_it_3:    'YTD cybersecurity includes annual pen test completed in May.',
+    sub_it_4:    'YTD dev spend on portal project tracking to approved scope.',
+    sub_legal_0: 'YTD legal fees include Q1 M&A review and Q2 distribution agreement.',
+    sub_legal_1: 'YTD IP filings on schedule; three markets completed.',
+    sub_legal_2: 'YTD compliance costs include GDPR audit completed in April.',
+    sub_legal_3: 'YTD contract management on track; MSA refresh completed.',
+    sub_legal_4: 'YTD litigation provisions stable; no new claims in period.',
+    sub_gm_0:    'YTD travel includes investor roadshow in Q1 and regional visits in Q2.',
+    sub_gm_1:    'YTD facilities on budget; no unplanned service changes.',
+    sub_gm_2:    'YTD comms costs in line; fleet slightly over on fuel.',
+    sub_gm_3:    'YTD donation paid in full in April per board resolution.',
+    sub_gm_4:    'YTD contingencies minimal; within 0.3% of budget.',
+    opex:        'YTD total OPEX +2.8% vs budget; freight and cloud are key drivers.',
+    ebitda:      'YTD EBITDA margin at 17.9%; 150bps below plan, improving trend in Q2.',
+    da:          'YTD depreciation exactly on schedule per fixed asset plan.',
+    rf:          'YTD financial result impacted by rate increases on floating debt.',
+    imp:         'YTD effective tax rate 28.1% vs 29.5% budgeted; R&D credits applied.',
+    rn:          'YTD net income 4.2% below budget; gap narrowing vs Q1 position.',
+  }
+};
+const comments={}, expanded={};
+const CH={};
+const TF={size:10,family:"'DM Mono',monospace"};
+const LC='#98958f', GC='rgba(0,0,0,.05)';
+
+function gR(id,m){return BD[id]?BD[id][m]:0;}
+function gB(id,m){return BD[id]?Math.round(BD[id][m]*(BM[id]||1)):0;}
+function sumR(id,m){let s=0;for(let i=0;i<=m;i++)s+=BD[id][i];return s;}
+function sumB(id,m){let s=0;for(let i=0;i<=m;i++)s+=Math.round(BD[id][i]*(BM[id]||1));return s;}
+function aR(a,m){return a.vals[m];}
+function aB(a,m){return Math.round(a.vals[m]*a.bm);}
+function aRY(a,m){let s=0;for(let i=0;i<=m;i++)s+=a.vals[i];return s;}
+function aBY(a,m){let s=0;for(let i=0;i<=m;i++)s+=Math.round(a.vals[i]*a.bm);return s;}
+
+function getVals(m,ytd,s){
+  const sm=SM[s]; const res={};
+  Object.keys(BD).forEach(id=>{let v=ytd?sumR(id,m):gR(id,m);res[id]=Math.round(v*(sm[id]||1));});
+  AREAS.forEach(a=>{let v=ytd?aRY(a,m):aR(a,m);res['a_'+a.id]=Math.round(v*sm.area);});
+  return res;
+}
+function getBVals(m,ytd){
+  const res={};
+  Object.keys(BD).forEach(id=>{res[id]=ytd?sumB(id,m):gB(id,m);});
+  AREAS.forEach(a=>{res['a_'+a.id]=ytd?aBY(a,m):aB(a,m);});
+  return res;
+}
+
+function fmtK(v){return(v<0?'($':' $')+Math.abs(v/1000).toFixed(0)+'K'+(v<0?')':'');}
+function fmtKAbs(v){return'$'+(Math.abs(v)/1000).toFixed(0)+'K';}
+function fmtPct(rv,bv){const p=(rv-bv)/Math.abs(bv)*100;return(p>=0?'+':'')+p.toFixed(1)+'%';}
+function vpc(a,b){return b===0?0:+((a-b)/Math.abs(b)*100).toFixed(1);}
+function vc(v){return v>0?'vp':v<0?'vn':'';}
+function semCls(vp){if(vp>=0)return'bu';if(vp>=-5)return'bw';return'bdn';}
+function dc(id){if(CH[id]){CH[id].destroy();delete CH[id];}}
+
+/* ═══ WARNINGS ═════════════════════════════════════════════ */
+function checkWarnings(vals){
+  const mb=TOT.mb(vals),eb=TOT.ebitda(vals),rn=TOT.rn(vals),op=TOT.opex(vals);
+  const vt=vals.ventas+vals.otros_ing;
+  const chks=[
+    {k:'mb_margin',v:mb/vt*100},{k:'ebitda_margin',v:eb/vt*100},{k:'rn_margin',v:rn/vt*100},
+    {k:'cmv_pct',v:vals.cmv/vals.ventas*100},{k:'opex_pct',v:op/vals.ventas*100},
+  ];
+  const w=[],e=[];
+  chks.forEach(c=>{
+    const t=WARN_CFG[c.k];
+    if(t.inv){if(c.v>=t.err)e.push(`${t.label}: ${c.v.toFixed(1)}% (critical >${t.err}%)`);else if(c.v>=t.warn)w.push(`${t.label}: ${c.v.toFixed(1)}% (warning >${t.warn}%)`);}
+    else{if(c.v<=t.err)e.push(`${t.label}: ${c.v.toFixed(1)}% (critical <${t.err}%)`);else if(c.v<=t.warn)w.push(`${t.label}: ${c.v.toFixed(1)}% (warning <${t.warn}%)`);}
+  });
+  return{w,e};
+}
+function renderWarnings(vals){
+  const{w,e}=checkWarnings(vals);
+  const wb=document.getElementById('warn-box');
+  const issues=[...e,...w];
+  if(issues.length){
+    wb.className='warn-box show '+(e.length?'red':'amber');
+    document.getElementById('warn-ttl').textContent=e.length
+      ?`⚠ ${e.length} critical alert${e.length>1?'s':''} detected`
+      :`⚠ ${w.length} margin warning${w.length>1?'s':''}`;
+    document.getElementById('warn-ul').innerHTML=issues.map(i=>`<li>${i}</li>`).join('');
+  } else {wb.className='warn-box';}
+}
+
+/* ═══ KPIs ═════════════════════════════════════════════════ */
+function renderKPIs(m){
+  const vals=getVals(m,false,'base'),bvals=getBVals(m,false);
+  const mb=TOT.mb(vals),bMB=TOT.mb(bvals);
+  const eb=TOT.ebitda(vals),bEB=TOT.ebitda(bvals);
+  const rn=TOT.rn(vals),bRN=TOT.rn(bvals);
+  const vt=vals.ventas+vals.otros_ing;
+  const kpis=[
+    {l:'Net Revenue',v:fmtKAbs(vals.ventas),kca:'var(--blue)',bdg:fmtPct(vals.ventas,bvals.ventas),ok:vals.ventas>=bvals.ventas,sub:'vs budget'},
+    {l:'Gross Margin',v:(mb/vt*100).toFixed(1)+'%',kca:'var(--grn)',bdg:fmtPct(mb,bMB),ok:mb>=bMB,sub:'vs budget'},
+    {l:'EBITDA',v:fmtKAbs(eb),kca:eb>=bEB?'var(--grn)':'var(--red)',bdg:fmtPct(eb,bEB),ok:eb>=bEB,sub:'vs budget'},
+    {l:'Net Income',v:fmtKAbs(rn),kca:rn>=bRN?'var(--grn)':'var(--red)',bdg:fmtPct(rn,bRN),ok:rn>=bRN,sub:'vs budget'},
+  ];
+  document.getElementById('kpi-row').innerHTML=kpis.map(k=>`
+    <div class="kc" style="--kca:${k.kca}">
+      <div class="kl">${k.l}</div>
+      <div class="kv">${k.v}</div>
+      <div class="km"><span class="badge ${k.ok?'bu':'bdn'}">${k.bdg}</span><span>${k.sub}</span></div>
+    </div>`).join('');
+  renderWarnings(vals);
+  const topArea=AREAS.reduce((a,b)=>aR(a,m)>aR(b,m)?a:b);
+  document.getElementById('ii1').innerHTML=`<strong>Revenue</strong>: ${fmtKAbs(vals.ventas)} actual vs ${fmtKAbs(bvals.ventas)} budget (${fmtPct(vals.ventas,bvals.ventas)}).`;
+  document.getElementById('ii2').innerHTML=`<strong>Total OPEX</strong>: ${fmtKAbs(TOT.opex(vals))} — ${(TOT.opex(vals)/vals.ventas*100).toFixed(1)}% of revenue. Largest department: <strong>${topArea.label}</strong>.`;
+  document.getElementById('ii3').innerHTML=`<strong>EBITDA Margin</strong>: ${(eb/vt*100).toFixed(1)}% (budget: ${(bEB/(bvals.ventas+bvals.otros_ing)*100).toFixed(1)}%). Net income: ${fmtKAbs(rn)}.`;
+}
+
+/* ═══ SUMMARY CHARTS ═══════════════════════════════════════ */
+function buildTrend(m){
+  dc('cTrend');
+  const labels=MONTHS.slice(0,m+1);
+  const realV=[],budgV=[],realEb=[],budgEb=[];
+  for(let i=0;i<=m;i++){
+    const rv=getVals(i,false,'base'),bv=getBVals(i,false);
+    realV.push(rv.ventas);budgV.push(bv.ventas);
+    realEb.push(TOT.ebitda(rv));budgEb.push(TOT.ebitda(bv));
+  }
+  CH['cTrend']=new Chart(document.getElementById('cTrend'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Revenue Actual',data:realV,backgroundColor:'rgba(26,79,214,.15)',borderColor:'#1a4fd6',borderWidth:1.5,borderRadius:4,yAxisID:'y'},
+      {label:'Revenue Budget',data:budgV,backgroundColor:'rgba(0,0,0,0)',borderColor:'#ccc9c4',borderWidth:1,borderRadius:4,type:'line',pointRadius:3,yAxisID:'y'},
+      {label:'EBITDA Actual',data:realEb,backgroundColor:'rgba(6,122,85,.2)',borderColor:'#067a55',borderWidth:2,type:'line',pointRadius:3,tension:.3,yAxisID:'y2'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:10},boxWidth:10}},datalabels:{display:ctx=>ctx.datasetIndex===0,anchor:'end',align:'top',offset:1,font:{size:8,family:"'DM Mono',monospace",weight:'500'},color:'#1a4fd6',formatter:v=>'$'+(v/1000).toFixed(0)+'K'}},
+      scales:{
+        y:{ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'K',font:TF,color:LC},grid:{color:GC},border:{color:'transparent'}},
+        y2:{position:'right',ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'K',font:TF,color:LC},grid:{display:false},border:{color:'transparent'}},
+        x:{ticks:{font:TF,color:LC},grid:{display:false},border:{color:GC}}
+      }}
+  });
+}
+
+function buildOpexChart(m){
+  dc('cOpex');
+  CH['cOpex']=new Chart(document.getElementById('cOpex'),{
+    type:'bar',
+    data:{labels:AREAS.map(a=>a.label),datasets:[
+      {label:'Actual',data:AREAS.map(a=>aR(a,m)),backgroundColor:AREAS.map(a=>a.color+'33'),borderColor:AREAS.map(a=>a.color),borderWidth:1.5,borderRadius:4},
+      {label:'Budget',data:AREAS.map(a=>aB(a,m)),backgroundColor:'rgba(0,0,0,0)',borderColor:'#ccc9c4',borderWidth:1,borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:10},boxWidth:10}},datalabels:{display:ctx=>ctx.datasetIndex===0,anchor:'end',align:'top',offset:1,font:{size:8,family:"'DM Mono',monospace",weight:'500'},color:ctx=>AREAS[ctx.dataIndex]?.color||'#4e4c4a',formatter:v=>'$'+(v/1000).toFixed(1)+'K'}},
+      scales:{
+        y:{ticks:{callback:v=>'$'+(v/1000).toFixed(1)+'K',font:TF,color:LC},grid:{color:GC},border:{color:'transparent'}},
+        x:{ticks:{font:{size:9,family:"'DM Mono',monospace"},color:LC,maxRotation:30},grid:{display:false},border:{color:GC}}
+      }}
+  });
+}
+
+function buildWfSmall(m){
+  dc('cWfSmall');
+  const vals=getVals(m,false,'base');
+  const mb=TOT.mb(vals),eb=TOT.ebitda(vals),rn=TOT.rn(vals);
+  const data=[vals.ventas,-vals.cmv,mb,-TOT.opex(vals),eb,-vals.da,vals.rf,-vals.imp,rn];
+  const labels=['Revenue','COGS','Gross Profit','OPEX','EBITDA','D&A','Fin. Result','Tax','Net Income'];
+  const colors=data.map((v,i)=>[2,4,8].includes(i)?'#1a4fd6':v>=0?'rgba(6,122,85,.7)':'rgba(191,28,28,.7)');
+  CH['cWfSmall']=new Chart(document.getElementById('cWfSmall'),{
+    type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:4,borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},datalabels:{display:true,anchor:'end',align:ctx=>ctx.dataset.data[ctx.dataIndex]>=0?'top':'bottom',offset:2,font:{size:7.5,family:"'DM Mono',monospace",weight:'500'},color:ctx=>ctx.dataset.data[ctx.dataIndex]>=0?'#067a55':'#bf1c1c',formatter:v=>'$'+(Math.abs(v)/1000).toFixed(0)+'K'}},
+      scales:{y:{ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'K',font:TF,color:LC},grid:{color:GC},border:{color:'transparent'}},x:{ticks:{font:{size:8,family:"'DM Mono',monospace"},color:LC,maxRotation:30},grid:{display:false},border:{color:GC}}}}
+  });
+}
+
+function buildVarArea(m){
+  dc('cVarArea');
+  const vars=AREAS.map(a=>aR(a,m)-aB(a,m));
+  CH['cVarArea']=new Chart(document.getElementById('cVarArea'),{
+    type:'bar',
+    data:{labels:AREAS.map(a=>a.label),datasets:[{data:vars,backgroundColor:vars.map(v=>v<=0?'rgba(6,122,85,.7)':'rgba(191,28,28,.7)'),borderRadius:4,borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},datalabels:{display:true,anchor:'end',align:ctx=>ctx.dataset.data[ctx.dataIndex]>=0?'top':'bottom',offset:2,font:{size:8,family:"'DM Mono',monospace",weight:'500'},color:ctx=>ctx.dataset.data[ctx.dataIndex]<=0?'#067a55':'#bf1c1c',formatter:v=>(v>=0?'+':'')+Math.round(v/1000*10)/10+'K'}},
+      scales:{y:{ticks:{callback:v=>'$'+(v/1000).toFixed(1)+'K',font:TF,color:LC},grid:{color:GC},border:{color:'transparent'}},x:{ticks:{font:{size:9,family:"'DM Mono',monospace"},color:LC,maxRotation:30},grid:{display:false},border:{color:GC}}}}
+  });
+}
+
+/* ═══ P&L TABLE ════════════════════════════════════════════ */
+let plView='mes';
+function plChip(view,el){
+  document.querySelectorAll('#plchips .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); plView=view; renderPL();
+}
+
+function renderPL(){
+  const m=curM, ytd=plView==='ytd';
+  const body=document.getElementById('plBody');
+  body.innerHTML='';
+
+  function addRow(cfg){
+    const{label,rm,bm,ry,by,isSec,isSub,isTot,isArea,areaId,isCrow,color,cmtKey}=cfg;
+    if(isSec){
+      const tr=document.createElement('tr');tr.classList.add('sec-hdr');
+      tr.innerHTML=`<td colspan="10">${label}</td>`;body.appendChild(tr);return;
+    }
+    const vdm=rm-bm,vpm=vpc(rm,bm);
+    const vdy=ry-by,vpy=vpc(ry,by);
+    const clsM=semCls(isSub?-vpm:vpm);
+    const clsY=semCls(isSub?-vpy:vpy);
+
+    const tr=document.createElement('tr');
+    if(isTot)tr.classList.add('tot');
+    else if(isSub)tr.classList.add('sub');
+    if(isArea)tr.classList.add('xrow');
+    if(isCrow){tr.classList.add('crow');tr.dataset.par=areaId;tr.style.display='none';}
+
+    const dot=color?`<span class="area-dot" style="background:${color}"></span>`:'';
+    const xbtn=isArea?`<span class="xbtn" id="xb-${areaId}">›</span>`:'<span style="width:18px;display:inline-block;flex-shrink:0"></span>';
+    const cmt = comments[cmtKey] || NOTES[plView]?.[cmtKey] || '';
+
+    tr.innerHTML=`
+      <td><div class="inner">${isTot||isSub?'':xbtn}${dot}${label}</div></td>
+      <td>${fmtK(rm)}</td><td>${fmtK(bm)}</td>
+      <td class="${vc(vdm)}"><span class="badge ${clsM}">${fmtK(vdm)}</span></td>
+      <td class="${vc(vpm)}"><span class="badge ${clsM}">${vpm>=0?'+':''}${vpm}%</span></td>
+      <td>${fmtK(ry)}</td><td>${fmtK(by)}</td>
+      <td class="${vc(vdy)}"><span class="badge ${clsY}">${fmtK(vdy)}</span></td>
+      <td class="${vc(vpy)}"><span class="badge ${clsY}">${vpy>=0?'+':''}${vpy}%</span></td>
+      <td class="note-td"><input class="cmt-inp" data-key="${cmtKey||''}" placeholder="Note…" value="${comments[cmtKey]||''}"></td>`;
+
+    if(isArea){
+      tr.onclick=()=>{
+        const open=tr.classList.toggle('xopen');
+        const btn=document.getElementById('xb-'+areaId);
+        if(btn)btn.style.transform=open?'rotate(90deg)':'';
+        expanded[areaId]=open;
+        body.querySelectorAll(`[data-par="${areaId}"]`).forEach(c=>c.style.display=open?'':'none');
+      };
+    }
+    body.appendChild(tr);
+  }
+
+  // Revenue
+  addRow({label:'Revenue',isSec:true});
+  addRow({label:'Net Revenue',rm:ytd?sumR('ventas',m):gR('ventas',m),bm:ytd?sumB('ventas',m):gB('ventas',m),ry:sumR('ventas',m),by:sumB('ventas',m),cmtKey:'ventas'});
+  addRow({label:'Other Income',rm:ytd?sumR('otros_ing',m):gR('otros_ing',m),bm:ytd?sumB('otros_ing',m):gB('otros_ing',m),ry:sumR('otros_ing',m),by:sumB('otros_ing',m),cmtKey:'otros_ing'});
+
+  // COGS
+  addRow({label:'Cost of Goods Sold',isSec:true});
+  addRow({label:'COGS',rm:ytd?sumR('cmv',m):gR('cmv',m),bm:ytd?sumB('cmv',m):gB('cmv',m),ry:sumR('cmv',m),by:sumB('cmv',m),isSub:true,cmtKey:'cmv'});
+
+  // Gross Profit
+  const mbM=ytd?(sumR('ventas',m)+sumR('otros_ing',m)-sumR('cmv',m)):(gR('ventas',m)+gR('otros_ing',m)-gR('cmv',m));
+  const mbBM=ytd?(sumB('ventas',m)+sumB('otros_ing',m)-sumB('cmv',m)):(gB('ventas',m)+gB('otros_ing',m)-gB('cmv',m));
+  const mbY=sumR('ventas',m)+sumR('otros_ing',m)-sumR('cmv',m);
+  const mbBY=sumB('ventas',m)+sumB('otros_ing',m)-sumB('cmv',m);
+  addRow({label:'Gross Profit',rm:mbM,bm:mbBM,ry:mbY,by:mbBY,isSub:true,cmtKey:'mb'});
+
+  // OPEX
+  addRow({label:'Operating Expenses (OPEX)',isSec:true});
+  let totOpexM=0,totOpexBM=0,totOpexY=0,totOpexBY=0;
+  AREAS.forEach(a=>{
+    const rm=ytd?aRY(a,m):aR(a,m),bm=ytd?aBY(a,m):aB(a,m);
+    const ry=aRY(a,m),by=aBY(a,m);
+    totOpexM+=rm;totOpexBM+=bm;totOpexY+=ry;totOpexBY+=by;
+    addRow({label:a.label,rm,bm,ry,by,isArea:true,areaId:a.id,isSub:true,color:a.color,cmtKey:'area_'+a.id});
+    a.subs.forEach((sl,i)=>{
+      addRow({label:sl,rm:Math.round(rm*a.subPct[i]),bm:Math.round(bm*a.subPct[i]),ry:Math.round(ry*a.subPct[i]),by:Math.round(by*a.subPct[i]),isCrow:true,areaId:a.id,isSub:true,cmtKey:'sub_'+a.id+'_'+i});
+    });
+  });
+  addRow({label:'Total OPEX',rm:totOpexM,bm:totOpexBM,ry:totOpexY,by:totOpexBY,isSub:true,cmtKey:'opex'});
+
+  // EBITDA
+  const ebM=mbM-totOpexM,ebBM=mbBM-totOpexBM,ebY=mbY-totOpexY,ebBY=mbBY-totOpexBY;
+  addRow({label:'EBITDA',rm:ebM,bm:ebBM,ry:ebY,by:ebBY,isSub:true,cmtKey:'ebitda'});
+
+  // Below-the-line
+  addRow({label:'Below the Line',isSec:true});
+  addRow({label:'Depreciation & Amort.',rm:ytd?sumR('da',m):gR('da',m),bm:ytd?sumB('da',m):gB('da',m),ry:sumR('da',m),by:sumB('da',m),isSub:true,cmtKey:'da'});
+  addRow({label:'Financial Result',rm:ytd?sumR('rf',m):gR('rf',m),bm:ytd?sumB('rf',m):gB('rf',m),ry:sumR('rf',m),by:sumB('rf',m),cmtKey:'rf'});
+  addRow({label:'Income Tax',rm:ytd?sumR('imp',m):gR('imp',m),bm:ytd?sumB('imp',m):gB('imp',m),ry:sumR('imp',m),by:sumB('imp',m),isSub:true,cmtKey:'imp'});
+
+  // Net Income
+  const rnM=ebM-(ytd?sumR('da',m):gR('da',m))+(ytd?sumR('rf',m):gR('rf',m))-(ytd?sumR('imp',m):gR('imp',m));
+  const rnBM=ebBM-(ytd?sumB('da',m):gB('da',m))+(ytd?sumB('rf',m):gB('rf',m))-(ytd?sumB('imp',m):gB('imp',m));
+  const rnY=ebY-sumR('da',m)+sumR('rf',m)-sumR('imp',m);
+  const rnBY=ebBY-sumB('da',m)+sumB('rf',m)-sumB('imp',m);
+  addRow({label:'Net Income',rm:rnM,bm:rnBM,ry:rnY,by:rnBY,isTot:true,cmtKey:'rn'});
+
+  body.querySelectorAll('.cmt-inp').forEach(inp=>{
+    inp.addEventListener('change',e=>{comments[e.target.dataset.key]=e.target.value;});
+  });
+}
+
+/* ═══ WATERFALL ════════════════════════════════════════════ */
+const WF_STEPS=[
+  {id:'ventas',    label:'Revenue',     type:'add'},
+  {id:'otros_ing', label:'Other Inc.',  type:'add'},
+  {id:'cmv',       label:'COGS',        type:'sub'},
+  {id:'mb',        label:'Gross Profit',type:'total',calc:'mb'},
+  ...AREAS.map(a=>({id:'a_'+a.id,label:a.label,type:'sub',color:a.color})),
+  {id:'ebitda',    label:'EBITDA',      type:'total',calc:'ebitda'},
+  {id:'da',        label:'D&A',         type:'sub'},
+  {id:'rf',        label:'Fin. Result', type:'add'},
+  {id:'imp',       label:'Tax',         type:'sub'},
+  {id:'rn',        label:'Net Income',  type:'total',calc:'rn'},
+];
+
+function buildWFBars(vals){
+  const bars=[]; let run=0;
+  WF_STEPS.forEach(s=>{
+    if(s.calc){const v=TOT[s.calc](vals);bars.push({label:s.label,base:0,size:v,type:'total',val:v,color:null});run=v;}
+    else{const raw=vals[s.id]||0;const d=s.id==='rf'?raw:s.type==='sub'?-raw:raw;const b=d>=0?run:run+d;bars.push({label:s.label,base:b,size:Math.abs(d),type:s.type,val:d,color:s.color||null});run+=d;}
+  });
+  return bars;
+}
+function buildVarBars(m,sc){
+  const r=getVals(m,false,sc),b=getBVals(m,false);
+  const bars=[]; let run=0;
+  WF_STEPS.forEach(st=>{
+    if(st.calc){const vv=TOT[st.calc](r)-TOT[st.calc](b);bars.push({label:st.label,base:0,size:vv,type:'total',val:vv,color:null});run=vv;}
+    else{const rv=r[st.id]||0,bv=b[st.id]||0;const d=st.type==='sub'?bv-rv:rv-bv;const base=d>=0?run:run+d;bars.push({label:st.label,base:base,size:Math.abs(d),type:d>=0?'pos':'neg_bar',val:d,color:st.color||null});run+=d;}
+  });
+  return bars;
+}
+
+function setWMode(mode){
+  wfMode=mode;
+  ['mes','ytd','var'].forEach(k=>document.getElementById('wm-'+k).classList.toggle('active',k===mode));
+  renderWF();
+}
+
+function renderWF(){
+  const m=curM, ytd=wfMode==='ytd', isVar=wfMode==='var';
+  const vals=getVals(m,ytd,curScen), bvals=getBVals(m,ytd);
+  const bars=isVar?buildVarBars(m,curScen):buildWFBars(vals);
+  const sc={opt:'#067a55',base:'#1a4fd6',pes:'#8a4900'}[curScen];
+
+  const barColors=bars.map(b=>{
+    if(b.type==='total')return sc;
+    if(b.color)return b.color;
+    if(b.type==='pos')return'rgba(6,122,85,.7)';
+    if(b.type==='neg_bar')return'rgba(191,28,28,.7)';
+    return b.val>=0?'rgba(6,122,85,.7)':'rgba(191,28,28,.7)';
+  });
+
+  const tops=bars.map(b=>(b.base||0)+(b.size||0));
+  const bases=bars.map(b=>b.base||0);
+  const mn=Math.min(...bases,...tops), mx=Math.max(...tops);
+  const rng=mx-mn||1000;
+
+  document.getElementById('wf-legend').innerHTML=
+    (isVar
+      ?`<span><i style="background:rgba(6,122,85,.7)"></i>Favorable vs budget</span><span><i style="background:rgba(191,28,28,.7)"></i>Unfavorable</span>`
+      :`<span><i style="background:rgba(6,122,85,.7)"></i>Additions</span><span><i style="background:rgba(191,28,28,.7)"></i>Deductions</span>`)
+    +`<span><i style="background:${sc}"></i>Subtotals</span>`
+    +AREAS.map(a=>`<span><i style="background:${a.color}"></i>${a.label}</span>`).join('');
+
+  dc('cWF');
+  CH['cWF']=new Chart(document.getElementById('cWF'),{
+    type:'bar',
+    data:{labels:bars.map(b=>b.label),datasets:[
+      {data:bars.map(b=>b.base||0),backgroundColor:'rgba(0,0,0,0)',borderWidth:0,stack:'w'},
+      {data:bars.map(b=>b.size),backgroundColor:barColors,borderWidth:0,stack:'w',borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        datalabels:{display:ctx=>ctx.datasetIndex===1,anchor:'end',align:ctx=>{const b=bars[ctx.dataIndex];return(b.base||0)+(b.size||0)>=0?'top':'bottom';},offset:2,font:{size:8,family:"'DM Mono',monospace",weight:'600'},color:ctx=>{const b=bars[ctx.dataIndex];return b.type==='total'?'#fff':b.val>=0?'#067a55':'#bf1c1c';},backgroundColor:ctx=>{const b=bars[ctx.dataIndex];return b.type==='total'?sc+'cc':'transparent';},borderRadius:3,padding:{left:3,right:3,top:1,bottom:1},formatter:(v,ctx)=>{const b=bars[ctx.dataIndex];const amt=b.type==='total'?b.size:Math.abs(b.val);const sign=b.type==='total'?'':b.val>=0?'+':'-';return sign+'$'+(amt/1000).toFixed(0)+'K';}},
+        tooltip:{callbacks:{label:ctx=>{if(ctx.datasetIndex===0)return null;const b=bars[ctx.dataIndex];return b.type==='total'?' $'+Math.round(b.size/1000)+'K':' '+(b.val>=0?'+':'-')+'$'+Math.abs(Math.round(b.val/1000))+'K';},title:items=>bars[items[0].dataIndex].label}}},
+      scales:{
+        x:{stacked:true,ticks:{font:{size:9,family:"'DM Mono',monospace"},color:LC,autoSkip:false,maxRotation:35},grid:{display:false},border:{color:GC}},
+        y:{stacked:true,min:Math.round(mn-rng*.12),max:Math.round(mx+rng*.18),ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'K',font:TF,color:LC},grid:{color:GC},border:{color:'transparent'}}
+      }}
+  });
+
+  const mb=TOT.mb(vals),bMB=TOT.mb(bvals),eb=TOT.ebitda(vals),bEB=TOT.ebitda(bvals),rn=TOT.rn(vals),bRN=TOT.rn(bvals);
+  const vt=vals.ventas+vals.otros_ing;
+  document.getElementById('wf-kpis').innerHTML=[
+    {l:'Gross Profit',v:fmtKAbs(mb),s:(mb/vt*100).toFixed(1)+'% of revenue',p:fmtPct(mb,bMB),ok:mb>=bMB},
+    {l:'EBITDA',v:fmtKAbs(eb),s:(eb/vt*100).toFixed(1)+'% margin',p:fmtPct(eb,bEB),ok:eb>=bEB},
+    {l:'Net Income',v:fmtKAbs(rn),s:(rn/vt*100).toFixed(1)+'% margin',p:fmtPct(rn,bRN),ok:rn>=bRN},
+  ].map(k=>`<div class="kc" style="--kca:${k.ok?'var(--grn)':'var(--red)'}"><div class="kl">${k.l}</div><div class="kv" style="font-size:28px;">${k.v}</div><div class="km"><span class="badge ${k.ok?'bu':'bdn'}">${k.p}</span><span>${k.s}</span></div></div>`).join('');
+}
+
+/* ═══ SCENARIOS ════════════════════════════════════════════ */
+function selectScen(s,el){
+  curScen=s;
+  document.querySelectorAll('.sc').forEach(c=>c.classList.remove('active-sc'));
+  el.classList.add('active-sc');
+  if(document.getElementById('s3').classList.contains('active'))renderWF();
+}
+
+function buildScenCharts(){
+  function annualVals(sc){
+    let v=0,eb=0;
+    for(let i=0;i<12;i++){const rv=getVals(i,false,sc);v+=rv.ventas;eb+=TOT.ebitda(rv);}
+    return{rev:v,ebitda:eb,ebPct:eb/v*100};
+  }
+  const sc={pes:annualVals('pes'),base:annualVals('base'),opt:annualVals('opt')};
+  const bv12=getBVals(11,true);
+  const budRev=bv12.ventas+bv12.otros_ing;
+  const budEb=TOT.ebitda(bv12);
+
+  function fK(v){return'$'+(v/1000).toFixed(0)+'K';}
+  ['pes','base','opt'].forEach(s=>{
+    const d=sc[s];
+    document.getElementById(`sc-${s}-rev`).textContent=fK(d.rev);
+    document.getElementById(`sc-${s}-eb`).textContent=d.ebPct.toFixed(1)+'%';
+    document.getElementById(`sc-${s}-ebd`).textContent=fK(d.ebitda);
+    document.getElementById(`sc-${s}-rn`).textContent=fK(d.ebitda*0.65);
+  });
+  document.getElementById('sc-base-vsbud').textContent=
+    (sc.base.rev>=budRev?'+':'')+((sc.base.rev-budRev)/budRev*100).toFixed(1)+'% vs budget';
+
+  dc('cScRev');
+  CH['cScRev']=new Chart(document.getElementById('cScRev'),{type:'bar',
+    data:{labels:['Downside','Base Case','Upside','Budget'],
+      datasets:[{data:[sc.pes.rev,sc.base.rev,sc.opt.rev,budRev],
+        backgroundColor:['rgba(138,73,0,.13)','rgba(26,79,214,.13)','rgba(6,122,85,.13)','rgba(0,0,0,.06)'],
+        borderColor:['#c99a3a','#1a4fd6','#067a55','#ccc9c4'],
+        borderWidth:[2,2,2,1],borderRadius:7}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},datalabels:{display:true,anchor:'end',align:'top',offset:3,font:{size:9,family:"'DM Mono',monospace",weight:'500'},color:'#4e4c4a',formatter:v=>'$'+(v/1000).toFixed(0)+'K'}},
+      scales:{y:{ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'K',font:TF,color:LC},grid:{color:GC},border:{color:'transparent'},min:Math.round(sc.pes.rev*.9)},x:{ticks:{font:TF,color:LC},grid:{display:false},border:{color:GC}}}}
+  });
+
+  dc('cScEb');
+  CH['cScEb']=new Chart(document.getElementById('cScEb'),{type:'bar',
+    data:{labels:['Downside','Base Case','Upside','Budget'],
+      datasets:[{data:[sc.pes.ebPct,sc.base.ebPct,sc.opt.ebPct,budEb/budRev*100],
+        backgroundColor:['rgba(138,73,0,.13)','rgba(26,79,214,.13)','rgba(6,122,85,.13)','rgba(0,0,0,.06)'],
+        borderColor:['#c99a3a','#1a4fd6','#067a55','#ccc9c4'],
+        borderWidth:[2,2,2,1],borderRadius:7}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},datalabels:{display:true,anchor:'end',align:'top',offset:3,font:{size:9,family:"'DM Mono',monospace",weight:'500'},color:'#4e4c4a',formatter:v=>v.toFixed(1)+'%'}},
+      scales:{y:{ticks:{callback:v=>v.toFixed(0)+'%',font:TF,color:LC},grid:{color:GC},border:{color:'transparent'},min:0,max:35},x:{ticks:{font:TF,color:LC},grid:{display:false},border:{color:GC}}}}
+  });
+}
+
+/* ═══ NAV & PERIOD ═════════════════════════════════════════ */
+function goTab(id,el){
+  document.querySelectorAll('.tbtab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='s3')renderWF();
+}
+
+function periodChange(){
+  curM=parseInt(document.getElementById('moSel').value);
+  document.getElementById('ppill').textContent=MONTHS[curM]+' 2025';
+  document.getElementById('s1p').textContent=MONTHS[curM]+' 2025 · Current month vs. Budget';
+  document.getElementById('s2p').textContent=MONTHS[curM]+' 2025 · Click department rows to expand cost lines';
+  updateAll();
+}
+
+function updateAll(){
+  renderKPIs(curM);
+  buildTrend(curM);
+  buildOpexChart(curM);
+  buildWfSmall(curM);
+  buildVarArea(curM);
+  renderPL();
+  buildScenCharts();
+  if(document.getElementById('s3').classList.contains('active'))renderWF();
+}
+
+/* ═══ AI ASSISTANT ═════════════════════════════════════════ */
+function aiToggle(s){
+  const p=document.getElementById('aip-'+s);
+  p.classList.toggle('open');
+  if(p.classList.contains('open'))setTimeout(()=>document.getElementById('aii-'+s).focus(),100);
+}
+function aiSug(s,t){document.getElementById('aii-'+s).value=t;aiSend(s);}
+const AI_HX={s1:[],s2:[],s3:[],s4:[]};
+async function aiSend(s){
+  const inp=document.getElementById('aii-'+s);
+  const t=inp.value.trim();if(!t)return;
+  inp.value='';aiAddMsg(s,t,'user');AI_HX[s].push({role:'user',content:t});await aiCall(s);
+}
+function aiAddMsg(s,text,role){
+  const c=document.getElementById('aim-'+s);
+  const d=document.createElement('div');d.className='ai-msg '+role;d.textContent=text;
+  c.appendChild(d);c.scrollTop=c.scrollHeight;return d;
+}
+function aiTyping(s){
+  const c=document.getElementById('aim-'+s);
+  const d=document.createElement('div');d.className='ai-msg ai';d.id='aitp-'+s;
+  d.innerHTML='<span class="ai-typing"><span></span><span></span><span></span></span>';
+  c.appendChild(d);c.scrollTop=c.scrollHeight;
+}
+function aiRmTyping(s){const e=document.getElementById('aitp-'+s);if(e)e.remove();}
+async function aiCall(s){
+  const btn=document.querySelector('#aip-'+s+' .ai-input-row button');
+  const inp=document.getElementById('aii-'+s);
+  btn.disabled=true;inp.disabled=true;aiTyping(s);
+  const vals=getVals(curM,false,'base'),bvals=getBVals(curM,false);
+  const sysCtx={
+    s1:`You are a financial analyst assistant embedded in a P&L Monthly Close Dashboard. Current month: ${MONTHS[curM]} 2025. Key metrics: Revenue ${fmtKAbs(vals.ventas)}, Gross Margin ${(TOT.mb(vals)/(vals.ventas+vals.otros_ing)*100).toFixed(1)}%, EBITDA Margin ${(TOT.ebitda(vals)/(vals.ventas+vals.otros_ing)*100).toFixed(1)}%. OPEX departments: Marketing, Finance, Operations, HR, IT, Legal, General Management. Answer concisely and professionally.`,
+    s2:`You are a financial analyst assistant. You are analysing the detailed P&L table for ${MONTHS[curM]} 2025. The table includes Revenue (Net Revenue + Other Income), COGS, Gross Profit, OPEX by department (Marketing, Finance, Operations, HR, IT, Legal, General Mgmt.) each with 5 cost sub-lines, EBITDA, D&A, Financial Result, Tax, Net Income. Comparison is Actual vs Budget with absolute and percentage variances, plus YTD columns. Answer concisely and professionally.`,
+    s3:`You are a financial analyst assistant. You are analysing the P&L waterfall for ${MONTHS[curM]} 2025. The waterfall shows the build from Revenue to Net Income with OPEX broken down by department. Three modes: Current Month, YTD, and Variance vs Budget. Active scenario: ${curScen}. Answer concisely and professionally.`,
+    s4:`You are a financial analyst assistant. You are in the Scenario Planning section of the monthly close dashboard. Three scenarios: Downside (revenue -7%, COGS +6%, OPEX +6%), Base Case (actuals), Upside (revenue +6%, COGS -5%, OPEX -6%). Projected on a full-year basis. Answer concisely and professionally.`,
+  };
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:sysCtx[s],messages:AI_HX[s]})
+    });
+    const data=await r.json();
+    aiRmTyping(s);
+    const reply=data.content?.[0]?.text||'Could not get a response. Please try again.';
+    AI_HX[s].push({role:'assistant',content:reply});aiAddMsg(s,reply,'ai');
+  }catch(e){
+    aiRmTyping(s);
+    aiAddMsg(s,'Connection error. Please check your network and try again.','ai');
+  }finally{btn.disabled=false;inp.disabled=false;inp.focus();}
+}
+
+/* ═══ LANDING → DASH ═══════════════════════════════════════ */
+function enterDash(){
+  const land=document.getElementById('landing');
+  land.style.transition='opacity .36s';land.style.opacity='0';
+  setTimeout(()=>{
+    land.style.display='none';
+    const app=document.getElementById('app');
+    app.style.display='block';
+    requestAnimationFrame(()=>{app.classList.add('vis');updateAll();});
+  },360);
+}
+</script>
+</body>
+</html>
